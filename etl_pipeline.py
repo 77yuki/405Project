@@ -19,16 +19,11 @@ class LoadECommerceData(luigi.Task):
         logging.info('Starting eCommerce ETL Process')
         start_time = time.time()
 
-        spark = SparkSession.builder \
-            .appName('ECommerce ETL') \
-            .config('spark.driver.memory', '2g')\
-            .config('spark.executor.memory', '1g')\
-            .config('spark.driver.maxResultSize', '2g') \
-            .getOrCreate()
+        spark = SparkSession.builder.appName('ECommerce ETL').getOrCreate()
 
         try:
             logging.info('Loading eCommerce dataset...')
-            ecom_df = spark.read.parquet('eCommerce_behavior_cleaned_for_etl.parquet').repartition(8)
+            ecom_df = spark.read.parquet('eCommerce_behavior_cleaned_for_etl_no_view.parquet').repartition(4)
 
             row_count = ecom_df.count()
             logging.info(f'Raw eCommerce row count: {row_count}')
@@ -53,9 +48,6 @@ class LoadECommerceData(luigi.Task):
             logging.info(f'Writing Parquet to {self.output().path}...')
             transformed_df.write.mode('overwrite').parquet(self.output().path)
 
-            if not os.path.exists(self.output().path):
-                raise FileNotFoundError(f'Parquet file missing: {self.output().path}')
-
             logging.info(f'Parquet file successfully written: {self.output().path}')
 
             elapsed_time = time.time() - start_time
@@ -77,11 +69,7 @@ class LoadCovidData(luigi.Task):
     def run(self):
         logging.info('Starting COVID ETL Process')
 
-        spark = SparkSession.builder \
-            .appName('COVID ETL') \
-            .config('spark.driver.memory', '4g') \
-            .config('spark.executor.memory', '2g') \
-            .getOrCreate()
+        spark = SparkSession.builder.appName('COVID ETL').getOrCreate()
 
         try:
             logging.info('Loading COVID dataset...')
@@ -104,9 +92,6 @@ class LoadCovidData(luigi.Task):
             os.makedirs('intermediate', exist_ok=True)
 
             transformed_df.write.mode('overwrite').parquet(self.output().path)
-
-            if not os.path.exists(self.output().path):
-                raise FileNotFoundError(f'Parquet file missing: {self.output().path}')
 
             logging.info(f'Parquet file successfully written: {self.output().path}')
 
@@ -174,8 +159,6 @@ class LoadToDuckDB(luigi.Task):
                     e.is_purchase,
                     c.global_total_cases,
                     c.global_total_deaths,
-                    c.global_cumulative_icu_patients,
-                    c.global_cumulative_hosp_patients
                 FROM ecommerce e
                 LEFT JOIN covid_global c
                     ON e.event_time = c.date

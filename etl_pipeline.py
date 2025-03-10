@@ -21,8 +21,8 @@ class LoadECommerceData(luigi.Task):
 
         spark = SparkSession.builder \
             .appName('ECommerce ETL') \
-            .config('spark.driver.memory', '8g') \
-            .config('spark.executor.memory', '4g') \
+            .config('spark.driver.memory', '2g')
+            .config('spark.executor.memory', '1g')
             .config('spark.driver.maxResultSize', '2g') \
             .getOrCreate()
 
